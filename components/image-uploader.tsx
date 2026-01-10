@@ -1,0 +1,231 @@
+"use client"
+
+import type React from "react"
+
+import { useState, useRef } from "react"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Textarea } from "@/components/ui/textarea"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Upload, X, Sparkles, AlertCircle } from "lucide-react"
+
+interface ImageUploaderProps {
+  onClose: () => void
+  onImageGenerated?: (result: string, originalImage: string, prompt: string) => void
+}
+
+interface GenerationResult {
+  success: boolean
+  result?: string
+  imageResult?: string
+  isImageGeneration?: boolean
+  error?: string
+  usage?: {
+    prompt_tokens: number
+    completion_tokens: number
+    total_tokens: number
+  }
+}
+
+export function ImageUploader({ onClose, onImageGenerated }: ImageUploaderProps) {
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [prompt, setPrompt] = useState("")
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [generationResult, setGenerationResult] = useState<GenerationResult | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setSelectedImage(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    const file = e.dataTransfer.files?.[0]
+    if (file && file.type.startsWith("image/")) {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setSelectedImage(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleGenerate = async () => {
+    if (!selectedImage || !prompt) return
+
+    setIsProcessing(true)
+    setGenerationResult(null)
+
+    try {
+      const response = await fetch('/api/edit-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image: selectedImage,
+          prompt: prompt,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        setGenerationResult({
+          success: true,
+          result: result.result,
+          imageResult: result.imageResult,
+          isImageGeneration: result.isImageGeneration,
+          usage: result.usage,
+        })
+
+        // 通知父组件有新的生成结果
+        const displayResult = result.isImageGeneration ? result.imageResult : result.result
+        if (onImageGenerated && displayResult) {
+          onImageGenerated(displayResult, selectedImage, prompt)
+        }
+      } else {
+        setGenerationResult({
+          success: false,
+          error: result.error || 'Failed to generate image',
+        })
+      }
+    } catch (error) {
+      setGenerationResult({
+        success: false,
+        error: error instanceof Error ? error.message : 'An unexpected error occurred',
+      })
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  return (
+    <Card className="relative max-h-[90vh] overflow-y-auto p-6">
+      <Button variant="ghost" size="icon" className="absolute right-4 top-4" onClick={onClose}>
+        <X className="size-4" />
+      </Button>
+
+      <div className="mb-6">
+        <h2 className="mb-2 text-2xl font-bold">
+          AI Image Editor <span className="text-3xl">🍌</span>
+        </h2>
+        <p className="text-muted-foreground">Upload an image and get detailed AI-powered editing guidance and creative suggestions</p>
+      </div>
+
+      {/* Upload Area */}
+      <div
+        className="mb-6 cursor-pointer rounded-lg border-2 border-dashed border-border bg-secondary/50 p-8 text-center transition-colors hover:border-primary hover:bg-secondary"
+        onClick={() => fileInputRef.current?.click()}
+        onDrop={handleDrop}
+        onDragOver={(e) => e.preventDefault()}
+      >
+        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+
+        {selectedImage ? (
+          <div className="relative">
+            <img
+              src={selectedImage || "/placeholder.svg"}
+              alt="Uploaded"
+              className="mx-auto max-h-64 rounded-lg object-contain"
+            />
+            <Button
+              variant="secondary"
+              size="sm"
+              className="mt-4"
+              onClick={(e) => {
+                e.stopPropagation()
+                setSelectedImage(null)
+              }}
+            >
+              Change Image
+            </Button>
+          </div>
+        ) : (
+          <div>
+            <Upload className="mx-auto mb-4 size-12 text-muted-foreground" />
+            <p className="mb-2 font-medium">Click to upload or drag and drop</p>
+            <p className="text-sm text-muted-foreground">Max 10MB • PNG, JPG, WebP</p>
+          </div>
+        )}
+      </div>
+
+      {/* Prompt Input */}
+      <div className="mb-6">
+        <label className="mb-2 block text-sm font-medium">Describe Your Desired Edit</label>
+        <Textarea
+          placeholder="e.g., 'Make the background a sunny beach', 'Change the season to winter', 'Add vintage film effects', 'Remove the person in the background'"
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          className="min-h-24 resize-none"
+        />
+      </div>
+
+      {/* Generate Button */}
+      <Button
+        className="w-full gap-2"
+        size="lg"
+        onClick={handleGenerate}
+        disabled={!selectedImage || !prompt || isProcessing}
+      >
+        {isProcessing ? (
+          <>
+            <span className="animate-spin">🍌</span>
+            Analyzing...
+          </>
+        ) : (
+          <>
+            <Sparkles className="size-5" />
+            Get Edit Suggestions
+          </>
+        )}
+      </Button>
+
+      {/* Result Display */}
+      {generationResult && (
+        <div className="mt-6">
+          {generationResult.success ? (
+            <div>
+              <h3 className="mb-3 text-lg font-semibold">AI Editing Guidance</h3>
+
+              {/* 显示生成的图像 */}
+              {generationResult.isImageGeneration && generationResult.imageResult && (
+                <div className="mb-4">
+                  <img
+                    src={generationResult.imageResult}
+                    alt="Generated result"
+                    className="w-full rounded-lg border object-contain max-h-64"
+                  />
+                </div>
+              )}
+
+              {/* 显示文本描述 */}
+              <div className="rounded-lg border bg-muted/50 p-4">
+                <p className="text-sm leading-relaxed">{generationResult.result}</p>
+                {generationResult.usage && (
+                  <div className="mt-3 text-xs text-muted-foreground">
+                    <p>Tokens used: {generationResult.usage.total_tokens}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <Alert variant="destructive">
+              <AlertCircle className="size-4" />
+              <AlertDescription>
+                {generationResult.error}
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
+      )}
+    </Card>
+  )
+}
