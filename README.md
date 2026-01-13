@@ -20,6 +20,7 @@ Transform any image with simple text prompts using advanced AI technology.
 
 ## ✨ Features / 功能特性
 
+- 🔐 **Google Authentication / Google 认证**: 使用 Google 账号安全登录
 - 🎨 **AI-Powered Editing / AI 驱动编辑**: 使用 Gemini 2.5 Flash Image API 转换图像
 - 📸 **Easy Upload / 简单上传**: 拖拽界面，支持多种格式
 - 🔄 **Real-time Generation / 实时生成**: 几秒钟内获得编辑后的图像
@@ -54,15 +55,28 @@ npm install
 1. Create a `.env.local` file in the root directory / 在根目录创建 `.env.local` 文件:
 
 ```env
+# OpenRouter API (用于图像编辑)
 OPENROUTER_API_KEY=your_openrouter_api_key_here
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 OPENROUTER_MODEL=google/gemini-2.5-flash-image
-SITE_URL=http://localhost:3000
+
+# Supabase (用于 Google 登录)
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# 站点配置
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
 SITE_NAME=Banana Editor
 ```
 
 2. Get your API key from [OpenRouter](https://openrouter.ai/) and add it to `.env.local`
    / 从 [OpenRouter](https://openrouter.ai/) 获取 API 密钥并添加到 `.env.local`
+
+3. Configure Supabase for Google OAuth authentication
+   / 配置 Supabase 以实现 Google OAuth 认证
+
+   For detailed setup instructions, see [SUPABASE_SETUP.md](./SUPABASE_SETUP.md)
+   / 详细的配置说明请参阅 [SUPABASE_SETUP.md](./SUPABASE_SETUP.md)
 
 ### Development / 开发
 
