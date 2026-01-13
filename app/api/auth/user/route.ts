@@ -7,13 +7,15 @@ export async function GET() {
     const { data: { user }, error } = await supabase.auth.getUser()
 
     if (error) {
+      console.error('Supabase auth error:', error)
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
 
     return NextResponse.json({ user })
   } catch (error) {
+    console.error('Internal server error:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }
