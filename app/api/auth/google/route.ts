@@ -7,6 +7,8 @@ export async function POST(request: NextRequest) {
     const { redirectTo } = await request.json()
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+    console.log('[Google Auth] NEXT_PUBLIC_SITE_URL:', siteUrl)
+    
     if (!siteUrl) {
       console.error('NEXT_PUBLIC_SITE_URL is not configured')
       return NextResponse.json(
