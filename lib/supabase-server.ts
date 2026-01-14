@@ -11,10 +11,12 @@ export async function createClient(request?: NextRequest) {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('[Supabase Client] Missing environment variables:', {
-      hasUrl: !!supabaseUrl,
-      hasKey: !!supabaseAnonKey,
-    })
+    if (isDevelopment) {
+      console.error('[Supabase Client] Missing environment variables:', {
+        hasUrl: !!supabaseUrl,
+        hasKey: !!supabaseAnonKey,
+      })
+    }
     throw new Error('Missing Supabase environment variables')
   }
 
@@ -22,58 +24,63 @@ export async function createClient(request?: NextRequest) {
     console.log('[Supabase Client] Creating client')
   }
 
-  return createServerClient(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-      cookies: {
-        get(name: string) {
-          if (request) {
-            const cookie = request.cookies.get(name)
+  try {
+    return createServerClient(
+      supabaseUrl,
+      supabaseAnonKey,
+      {
+        cookies: {
+          get(name: string) {
+            if (request) {
+              const cookie = request.cookies.get(name)
+              if (isDevelopment) {
+                console.log('[Supabase Client] GET cookie from request:', name, !!cookie)
+              }
+              return cookie?.value
+            }
+            const cookie = cookieStore.get(name)
             if (isDevelopment) {
-              console.log('[Supabase Client] GET cookie from request:', name, !!cookie)
+              console.log('[Supabase Client] GET cookie from store:', name, !!cookie)
             }
             return cookie?.value
-          }
-          const cookie = cookieStore.get(name)
-          if (isDevelopment) {
-            console.log('[Supabase Client] GET cookie from store:', name, !!cookie)
-          }
-          return cookie?.value
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          try {
-            if (isDevelopment) {
-              console.log('[Supabase Client] SET cookie:', name, 'value length:', value.length)
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            try {
+              if (isDevelopment) {
+                console.log('[Supabase Client] SET cookie:', name, 'value length:', value.length)
+              }
+              cookieStore.set({
+                name,
+                value,
+                ...options,
+              })
+              if (isDevelopment) {
+                console.log('[Supabase Client] Cookie set successfully')
+              }
+            } catch (error) {
+              console.error('[Supabase Client] Error setting cookie:', error)
             }
-            cookieStore.set({
-              name,
-              value,
-              ...options,
-            })
-            if (isDevelopment) {
-              console.log('[Supabase Client] Cookie set successfully')
+          },
+          remove(name: string, options: CookieOptions) {
+            try {
+              if (isDevelopment) {
+                console.log('[Supabase Client] REMOVE cookie:', name)
+              }
+              cookieStore.set({
+                name,
+                value: '',
+                ...options,
+                maxAge: 0,
+              })
+            } catch (error) {
+              console.error('[Supabase Client] Error removing cookie:', error)
             }
-          } catch (error) {
-            console.error('[Supabase Client] Error setting cookie:', error)
-          }
+          },
         },
-        remove(name: string, options: CookieOptions) {
-          try {
-            if (isDevelopment) {
-              console.log('[Supabase Client] REMOVE cookie:', name)
-            }
-            cookieStore.set({
-              name,
-              value: '',
-              ...options,
-              maxAge: 0,
-            })
-          } catch (error) {
-            console.error('[Supabase Client] Error removing cookie:', error)
-          }
-        },
-      },
-    }
-  )
+      }
+    )
+  } catch (error) {
+    console.error('[Supabase Client] Error creating client:', error)
+    throw new Error('Failed to create Supabase client')
+  }
 }
