@@ -1,4 +1,4 @@
-import { Hero } from "@/components/hero"
+import { Hero } from "@/components/hero-server"
 import { Features } from "@/components/features"
 import { Showcase } from "@/components/showcase"
 import { Testimonials } from "@/components/testimonials"

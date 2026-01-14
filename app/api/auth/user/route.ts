@@ -1,22 +1,19 @@
 import { createClient } from '@/lib/supabase-server'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient(request)
     const { data: { user }, error } = await supabase.auth.getUser()
 
     if (error) {
-      console.error('Supabase auth error:', error)
-      return NextResponse.json({ error: error.message }, { status: 400 })
+      console.error('[Auth User] Supabase auth error:', error)
+      return NextResponse.json({ user: null })
     }
 
     return NextResponse.json({ user })
   } catch (error) {
-    console.error('Internal server error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    )
+    console.error('[Auth User] Internal server error:', error)
+    return NextResponse.json({ user: null })
   }
 }

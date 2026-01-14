@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase-server';
 
 const openai = new OpenAI({
   baseURL: process.env.OPENROUTER_BASE_URL,
@@ -12,6 +13,16 @@ const openai = new OpenAI({
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createClient(request);
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Please login to use this feature' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const { image, prompt } = body;
 
@@ -22,7 +33,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 验证图片格式
+    // Validate image format
     if (!image.startsWith('data:image/')) {
       return NextResponse.json(
         { error: 'Invalid image format' },
@@ -58,22 +69,22 @@ Please create a new image that incorporates the uploaded image with the requeste
     const message = completion.choices[0].message;
     const response = message.content;
 
-    // 检查响应内容，尝试提取图像数据
+    // Check response content and try to extract image data
     let imageResult = null;
     let isImageGeneration = false;
     let textResult = response || "Image processed successfully!";
 
-    // 首先检查 message.images 数组（Gemini 2.5 Flash Image 的新格式）
+    // First check message.images array (new format for Gemini 2.5 Flash Image)
     if (message.images && Array.isArray(message.images) && message.images.length > 0) {
       const imageData = message.images[0];
 
-      // 检查图像数据的不同可能格式
+      // Check different possible formats of image data
       if (typeof imageData === 'string') {
         imageResult = imageData;
       } else if (imageData.url) {
         imageResult = imageData.url;
       } else if (imageData.data) {
-        // 如果是 base64 数据，添加前缀
+        // If it's base64 data, add prefix
         imageResult = imageData.data.startsWith('data:') ? imageData.data : `data:image/png;base64,${imageData.data}`;
       } else if (imageData.image_url && imageData.image_url.url) {
         imageResult = imageData.image_url.url;
@@ -85,9 +96,9 @@ Please create a new image that incorporates the uploaded image with the requeste
       }
     }
 
-    // 如果 images 数组中没有找到，检查传统的 content 字段
+    // If not found in images array, check traditional content field
     if (!isImageGeneration && response) {
-      // 检查是否包含图像URL
+      // Check if it contains image URL
       const imageUrlMatch = response.match(/https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp)/gi);
       if (imageUrlMatch) {
         isImageGeneration = true;
@@ -95,7 +106,7 @@ Please create a new image that incorporates the uploaded image with the requeste
         textResult = "Image generated successfully!";
       }
 
-      // 检查是否包含base64图像数据
+      // Check if it contains base64 image data
       const base64ImageMatch = response.match(/data:image\/[^;]+;base64,[A-Za-z0-9+/=]+/g);
       if (base64ImageMatch) {
         isImageGeneration = true;
@@ -104,14 +115,27 @@ Please create a new image that incorporates the uploaded image with the requeste
       }
     }
 
-    console.log('Full API Response:', {
-      message: completion.choices[0].message,
-      response: response ? response.substring(0, 200) + '...' : 'empty',
-      usage: completion.usage,
-      isImageGeneration,
-      imageResult: imageResult ? imageResult.substring(0, 100) + '...' : null,
-      imagesArray: completion.choices[0].message.images
-    });
+    // If successfully generated image, save to database
+    if (isImageGeneration && imageResult) {
+      try {
+        const { error: dbError } = await supabase
+          .from('user_images')
+          .insert({
+            user_id: user.id,
+            original_image: image,
+            generated_image: imageResult,
+            prompt: prompt
+          });
+
+        if (dbError) {
+          console.error('Error saving image to database:', dbError);
+          // Don't affect return result, just log error
+        }
+      } catch (error) {
+        console.error('Error saving image to database:', error);
+        // Don't affect return result, just log error
+      }
+    }
 
     return NextResponse.json({
       success: true,

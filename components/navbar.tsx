@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { AuthButton } from '@/components/auth-button'
-import { Button } from '@/components/ui/button'
-import { Image as ImageIcon } from 'lucide-react'
+import { GalleryHorizontalEnd } from 'lucide-react'
 
 export function Navbar() {
   return (
@@ -9,15 +8,14 @@ export function Navbar() {
       <div className="container flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-2">
           <Link href="/" className="flex items-center gap-2">
-            <ImageIcon className="h-6 w-6" />
+            <span className="text-3xl">🍌</span>
             <span className="font-bold text-xl">Banana Editor</span>
           </Link>
         </div>
         <div className="flex items-center gap-4">
-          <Link href="/login">
-            <Button variant="ghost" size="sm">
-              登录
-            </Button>
+          <Link href="/gallery" className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+            <GalleryHorizontalEnd className="h-4 w-4" />
+            My Gallery
           </Link>
           <AuthButton />
         </div>

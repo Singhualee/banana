@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient(request)
     const { redirectTo } = await request.json()
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL

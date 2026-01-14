@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { toast } from 'sonner'
+import { createClient } from '@/lib/supabase'
 import { GoogleLoginButton } from '@/components/google-login-button'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, LogOut, User } from 'lucide-react'
 
 interface User {
@@ -20,30 +21,49 @@ export function AuthButton() {
   const [isLoading, setIsLoading] = useState(true)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
-  useEffect(() => {
-    checkUser()
-  }, [])
+  const supabase = useMemo(() => createClient(), [])
 
-  const checkUser = async () => {
-    try {
-      const response = await fetch('/api/auth/user')
-      const data = await response.json()
-      setUser(data.user)
-    } catch (error) {
-      console.error('Error checking user:', error)
-    } finally {
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null)
       setIsLoading(false)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [supabase])
+
+  useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        setUser(user)
+      } catch (error) {
+        console.error('Error checking user:', error)
+        setUser(null)
+      } finally {
+        setIsLoading(false)
+      }
     }
-  }
+
+    checkUser()
+  }, [supabase])
 
   const handleLogout = async () => {
     setIsLoggingOut(true)
     try {
-      await fetch('/api/auth/logout', { method: 'POST' })
+      const { error } = await supabase.auth.signOut()
+      
+      if (error) {
+        toast.error('Logout failed, please try again later')
+        return
+      }
+      
       setUser(null)
-      window.location.href = '/'
+      toast.success('Successfully logged out')
     } catch (error) {
       console.error('Logout error:', error)
+      toast.error('Logout failed, please try again later')
+    } finally {
       setIsLoggingOut(false)
     }
   }
@@ -52,7 +72,7 @@ export function AuthButton() {
     return (
       <Button variant="outline" disabled>
         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-        加载中...
+        Loading...
       </Button>
     )
   }
@@ -77,7 +97,7 @@ export function AuthButton() {
           ) : (
             <>
               <LogOut className="mr-2 h-4 w-4" />
-              退出
+              Logout
             </>
           )}
         </Button>

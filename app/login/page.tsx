@@ -1,6 +1,5 @@
 import { GoogleLoginButton } from '@/components/google-login-button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import Link from 'next/link'
 
 export default function LoginPage() {
   return (
@@ -8,20 +7,15 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4">
-            <img src="/icon.svg" alt="Banana Editor" className="w-16 h-16 mx-auto" />
+            <span className="text-6xl">🍌</span>
           </div>
-          <CardTitle className="text-2xl">欢迎来到 Banana Editor</CardTitle>
+          <CardTitle className="text-2xl">Welcome to Banana Editor</CardTitle>
           <CardDescription>
-            使用 Google 账号登录以开始编辑图像
+            Sign in with your Google account to start editing images
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <GoogleLoginButton />
-          <div className="text-center text-sm text-muted-foreground">
-            <Link href="/" className="hover:underline">
-              返回首页
-            </Link>
-          </div>
         </CardContent>
       </Card>
     </div>

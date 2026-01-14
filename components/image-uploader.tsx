@@ -2,12 +2,13 @@
 
 import type React from "react"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Upload, X, Sparkles, AlertCircle } from "lucide-react"
+import { Upload, X, Sparkles, AlertCircle, LogIn } from "lucide-react"
+import { createClient } from "@/lib/supabase"
 
 interface ImageUploaderProps {
   onClose: () => void
@@ -27,12 +28,47 @@ interface GenerationResult {
   }
 }
 
+interface User {
+  id: string
+  email?: string
+  user_metadata?: {
+    full_name?: string
+    avatar_url?: string
+  }
+}
+
 export function ImageUploader({ onClose, onImageGenerated }: ImageUploaderProps) {
+  const [user, setUser] = useState<User | null>(null)
+  const [authLoading, setAuthLoading] = useState(true)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [prompt, setPrompt] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
   const [generationResult, setGenerationResult] = useState<GenerationResult | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const supabase = createClient()
+
+  useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        setUser(user)
+      } catch (error) {
+        console.error('Error checking user:', error)
+        setUser(null)
+      } finally {
+        setAuthLoading(false)
+      }
+    }
+
+    checkUser()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null)
+      setAuthLoading(false)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [supabase])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -86,7 +122,6 @@ export function ImageUploader({ onClose, onImageGenerated }: ImageUploaderProps)
           usage: result.usage,
         })
 
-        // 通知父组件有新的生成结果
         const displayResult = result.isImageGeneration ? result.imageResult : result.result
         if (onImageGenerated && displayResult) {
           onImageGenerated(displayResult, selectedImage, prompt)
@@ -105,6 +140,53 @@ export function ImageUploader({ onClose, onImageGenerated }: ImageUploaderProps)
     } finally {
       setIsProcessing(false)
     }
+  }
+
+  if (authLoading) {
+    return (
+      <Card className="relative max-h-[90vh] overflow-y-auto p-6">
+        <Button variant="ghost" size="icon" className="absolute right-4 top-4" onClick={onClose}>
+          <X className="size-4" />
+        </Button>
+
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="mb-6 rounded-full bg-primary/10 p-6">
+            <LogIn className="size-12 text-primary animate-pulse" />
+          </div>
+          <h2 className="mb-2 text-2xl font-bold">Checking login status...</h2>
+          <p className="max-w-md text-muted-foreground">
+            Please wait
+          </p>
+        </div>
+      </Card>
+    )
+  }
+
+  if (!user) {
+    return (
+      <Card className="relative max-h-[90vh] overflow-y-auto p-6">
+        <Button variant="ghost" size="icon" className="absolute right-4 top-4" onClick={onClose}>
+          <X className="size-4" />
+        </Button>
+
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="mb-6 rounded-full bg-primary/10 p-6">
+            <LogIn className="size-12 text-primary" />
+          </div>
+          <h2 className="mb-2 text-2xl font-bold">Login Required</h2>
+          <p className="mb-6 max-w-md text-muted-foreground">
+            Please log in with your Google account to use the AI image editing feature
+          </p>
+          <Button 
+            className="gap-2"
+            onClick={() => window.location.href = '/login'}
+          >
+            <LogIn className="size-4" />
+            Go to Login
+          </Button>
+        </div>
+      </Card>
+    )
   }
 
   return (
@@ -195,7 +277,7 @@ export function ImageUploader({ onClose, onImageGenerated }: ImageUploaderProps)
             <div>
               <h3 className="mb-3 text-lg font-semibold">AI Editing Guidance</h3>
 
-              {/* 显示生成的图像 */}
+              {/* Display generated image */}
               {generationResult.isImageGeneration && generationResult.imageResult && (
                 <div className="mb-4">
                   <img
@@ -206,7 +288,7 @@ export function ImageUploader({ onClose, onImageGenerated }: ImageUploaderProps)
                 </div>
               )}
 
-              {/* 显示文本描述 */}
+              {/* Display text description */}
               <div className="rounded-lg border bg-muted/50 p-4">
                 <p className="text-sm leading-relaxed">{generationResult.result}</p>
                 {generationResult.usage && (

@@ -12,7 +12,7 @@ interface GalleryItem {
   originalImage: string
   prompt: string
   result: string
-  generatedImage?: string // 存储生成的图片数据
+  generatedImage?: string
   timestamp: Date
   usage?: {
     prompt_tokens: number
@@ -30,7 +30,6 @@ export function OutputGallery({ items, onClear }: OutputGalleryProps) {
   const [expandedItem, setExpandedItem] = useState<string | null>(null)
 
   const handleDownload = async (item: GalleryItem) => {
-    // 如果有生成的图片，下载图片；否则下载原始图片
     const imageUrl = item.generatedImage || item.originalImage
 
     if (!imageUrl) {
@@ -39,8 +38,7 @@ export function OutputGallery({ items, onClear }: OutputGalleryProps) {
     }
 
     try {
-      // 确定文件格式和扩展名
-      let fileExtension = 'png' // 默认格式
+      let fileExtension = 'png'
       let mimeType = 'image/png'
 
       if (imageUrl.includes('.jpg') || imageUrl.includes('jpeg') || imageUrl.includes('data:image/jpeg')) {
@@ -51,7 +49,6 @@ export function OutputGallery({ items, onClear }: OutputGalleryProps) {
         mimeType = 'image/webp'
       }
 
-      // 如果是base64数据，转换为blob并下载
       if (imageUrl.startsWith('data:')) {
         const response = await fetch(imageUrl)
         const blob = await response.blob()
@@ -65,7 +62,6 @@ export function OutputGallery({ items, onClear }: OutputGalleryProps) {
         document.body.removeChild(a)
         URL.revokeObjectURL(blobUrl)
       } else {
-        // 对于外部URL，创建一个临时的图片元素来获取blob
         const response = await fetch(imageUrl)
         const blob = await response.blob()
         const blobUrl = URL.createObjectURL(blob)
@@ -80,7 +76,6 @@ export function OutputGallery({ items, onClear }: OutputGalleryProps) {
       }
     } catch (error) {
       console.error('Error downloading image:', error)
-      // 如果下载失败，尝试在新标签页中打开
       const a = document.createElement('a')
       a.href = imageUrl
       a.target = '_blank'
@@ -102,7 +97,6 @@ export function OutputGallery({ items, onClear }: OutputGalleryProps) {
         console.error('Error sharing:', error)
       }
     } else {
-      // 复制到剪贴板
       navigator.clipboard.writeText(`Prompt: ${item.prompt}\n\nResult: ${item.result}`)
     }
   }

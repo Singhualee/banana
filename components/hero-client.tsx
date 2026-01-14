@@ -30,31 +30,19 @@ interface User {
   }
 }
 
-export function Hero() {
+interface HeroClientProps {
+  initialUser: User | null
+}
+
+export function HeroClient({ initialUser }: HeroClientProps) {
   const [showUploader, setShowUploader] = useState(false)
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([])
-  const [user, setUser] = useState<User | null>(null)
-  const [checkingAuth, setCheckingAuth] = useState(true)
+  const [user, setUser] = useState<User | null>(initialUser)
   const supabase = createClient()
 
   useEffect(() => {
-    const checkUser = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        setUser(user)
-      } catch (error) {
-        console.error('Error checking user:', error)
-        setUser(null)
-      } finally {
-        setCheckingAuth(false)
-      }
-    }
-
-    checkUser()
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null)
-      setCheckingAuth(false)
     })
 
     return () => subscription.unsubscribe()
@@ -113,27 +101,18 @@ export function Hero() {
 
             {/* CTA Buttons */}
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-              {checkingAuth ? (
-                <Button size="lg" disabled className="group gap-2 text-lg min-w-[200px]">
-                  <Upload className="size-5 animate-spin" />
-                  加载中...
-                </Button>
-              ) : (
-                <>
-                  <Button 
-                    size="lg" 
-                    onClick={handleStartEditing} 
-                    className="group gap-2 text-lg"
-                  >
-                    <Upload className="size-5 transition-transform group-hover:scale-110" />
-                    Start Editing
-                    <span className="text-xl">🍌</span>
-                  </Button>
-                  <Button size="lg" variant="outline" className="text-lg bg-transparent">
-                    View Examples
-                  </Button>
-                </>
-              )}
+              <Button 
+                size="lg" 
+                onClick={handleStartEditing} 
+                className="group gap-2 text-lg"
+              >
+                <Upload className="size-5 transition-transform group-hover:scale-110" />
+                Start Editing
+                <span className="text-xl">🍌</span>
+              </Button>
+              <Button size="lg" variant="outline" className="text-lg bg-transparent">
+                View Examples
+              </Button>
             </div>
 
             {/* Image Uploader Modal */}
