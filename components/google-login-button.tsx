@@ -14,29 +14,28 @@ export function GoogleLoginButton() {
   const handleGoogleLogin = async () => {
     setIsLoading(true)
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
+      // Use the API route for authentication instead of direct supabase call
+      const response = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          redirectTo: `${window.location.origin}/auth/callback`,
+        }),
       })
 
-      if (error) {
-        console.error('Login error:', error)
-        toast.error('Login failed, please try again later')
-        setIsLoading(false)
-        return
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed')
       }
 
       if (data.url) {
+        // Redirect to Google authentication page
         window.location.href = data.url
       } else {
-        toast.error('Login failed, please try again later')
-        setIsLoading(false)
+        throw new Error('No authentication URL returned')
       }
     } catch (error) {
       console.error('Login error:', error)

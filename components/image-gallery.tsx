@@ -20,25 +20,33 @@ export function ImageGallery({ onClose }: ImageGalleryProps) {
   const [error, setError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [selectedImages, setSelectedImages] = useState<Record<string, 'original' | 'generated'>>({})
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
   const supabase = createClient()
 
   useEffect(() => {
     fetchImages()
-  }, [])
+  }, [currentPage, pageSize])
 
   const fetchImages = async () => {
     try {
       setLoading(true)
       setError(null)
       
-      const response = await fetch('/api/images')
-      const data = await response.json()
-
+      const response = await fetch(`/api/images?page=${currentPage}&pageSize=${pageSize}`, {
+        cache: 'no-store',
+      })
+      
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch images')
+        throw new Error(`API error (${response.status})`)
       }
-
+      
+      const data = await response.json()
       setImages(data.images || [])
+      setTotalPages(data.pagination?.totalPages || 1)
+      setTotalItems(data.pagination?.totalItems || 0)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch images')
       console.error('Error fetching images:', err)
@@ -164,22 +172,51 @@ export function ImageGallery({ onClose }: ImageGalleryProps) {
 
   return (
     <Card className="relative max-h-[90vh] overflow-y-auto p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h2 className="mb-2 text-2xl font-bold">My Images</h2>
-          <p className="text-muted-foreground">{images.length} images total</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleBackToHome}>
-            <Home className="mr-2 size-4" />
-            Back to Home
-          </Button>
-          {onClose && (
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <ArrowLeft className="size-4" />
+      <div className="mb-6">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="mb-2 text-2xl font-bold">My Images</h2>
+            <p className="text-muted-foreground">{totalItems} images total</p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleBackToHome}>
+              <Home className="mr-2 size-4" />
+              Back to Home
             </Button>
-          )}
+            {onClose && (
+              <Button variant="ghost" size="icon" onClick={onClose}>
+                <ArrowLeft className="size-4" />
+              </Button>
+            )}
+          </div>
         </div>
+        
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              Page {currentPage} of {totalPages}
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">

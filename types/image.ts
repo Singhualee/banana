@@ -3,6 +3,8 @@ export interface UserImage {
   user_id: string
   original_image: string
   generated_image: string
+  original_image_path?: string
+  generated_image_path?: string
   prompt: string
   created_at: string
   updated_at: string

@@ -52,7 +52,7 @@ export function Hero() {
 
     checkUser()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: any) => {
       setUser(session?.user ?? null)
       setCheckingAuth(false)
     })
@@ -109,6 +109,14 @@ export function Hero() {
             <p className="mb-8 text-pretty text-xl leading-relaxed text-muted-foreground md:text-2xl">
               Transform any image with simple text prompts. Experience advanced AI-powered editing with consistent
               character preservation and natural language understanding.
+            </p>
+
+            <p className="mb-8 text-sm text-muted-foreground">
+              Banana Editor is an independent product and is not affiliated with, endorsed by, or sponsored by any other company or organization.
+            </p>
+
+            <p className="mb-8 text-sm text-muted-foreground">
+              This product is not affiliated with OpenAI, Google, or any other AI service providers mentioned in our documentation.
             </p>
 
             {/* CTA Buttons */}

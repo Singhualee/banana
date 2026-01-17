@@ -17,6 +17,9 @@ export function Navbar() {
             <GalleryHorizontalEnd className="h-4 w-4" />
             My Gallery
           </Link>
+          <Link href="/pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+            Pricing
+          </Link>
           <AuthButton />
         </div>
       </div>

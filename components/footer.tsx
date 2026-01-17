@@ -17,23 +17,18 @@ export function Footer() {
             <h3 className="mb-4 font-semibold">Product</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <a href="#" className="transition-colors hover:text-foreground">
+                <a href="/#features" className="transition-colors hover:text-foreground">
                   Features
                 </a>
               </li>
               <li>
-                <a href="#" className="transition-colors hover:text-foreground">
+                <a href="/pricing" className="transition-colors hover:text-foreground">
                   Pricing
                 </a>
               </li>
               <li>
-                <a href="#" className="transition-colors hover:text-foreground">
-                  API
-                </a>
-              </li>
-              <li>
-                <a href="#" className="transition-colors hover:text-foreground">
-                  Documentation
+                <a href="/#faq" className="transition-colors hover:text-foreground">
+                  FAQ
                 </a>
               </li>
             </ul>
@@ -43,22 +38,12 @@ export function Footer() {
             <h3 className="mb-4 font-semibold">Company</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <a href="#" className="transition-colors hover:text-foreground">
+                <a href="/#about" className="transition-colors hover:text-foreground">
                   About
                 </a>
               </li>
               <li>
-                <a href="#" className="transition-colors hover:text-foreground">
-                  Blog
-                </a>
-              </li>
-              <li>
-                <a href="#" className="transition-colors hover:text-foreground">
-                  Careers
-                </a>
-              </li>
-              <li>
-                <a href="#" className="transition-colors hover:text-foreground">
+                <a href="/contact" className="transition-colors hover:text-foreground">
                   Contact
                 </a>
               </li>
@@ -69,18 +54,13 @@ export function Footer() {
             <h3 className="mb-4 font-semibold">Legal</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <a href="#" className="transition-colors hover:text-foreground">
+                <a href="/privacy-policy" className="transition-colors hover:text-foreground">
                   Privacy Policy
                 </a>
               </li>
               <li>
-                <a href="#" className="transition-colors hover:text-foreground">
+                <a href="/terms-of-service" className="transition-colors hover:text-foreground">
                   Terms of Service
-                </a>
-              </li>
-              <li>
-                <a href="#" className="transition-colors hover:text-foreground">
-                  Cookie Policy
                 </a>
               </li>
             </ul>

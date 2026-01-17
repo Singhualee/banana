@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Upload, X, Sparkles, AlertCircle, LogIn } from "lucide-react"
+import { Upload, X, Sparkles, AlertCircle, LogIn, CreditCard } from "lucide-react"
 import { createClient } from "@/lib/supabase"
+import { useUserCredits } from "@/hooks/use-user-credits"
 
 interface ImageUploaderProps {
   onClose: () => void
@@ -46,6 +47,7 @@ export function ImageUploader({ onClose, onImageGenerated }: ImageUploaderProps)
   const [generationResult, setGenerationResult] = useState<GenerationResult | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
+  const { credits, isLoading: creditsLoading, creditsRemaining, canGenerate } = useUserCredits()
 
   useEffect(() => {
     const checkUser = async () => {
@@ -62,7 +64,7 @@ export function ImageUploader({ onClose, onImageGenerated }: ImageUploaderProps)
 
     checkUser()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
       setUser(session?.user ?? null)
       setAuthLoading(false)
     })
@@ -96,6 +98,16 @@ export function ImageUploader({ onClose, onImageGenerated }: ImageUploaderProps)
   const handleGenerate = async () => {
     if (!selectedImage || !prompt) return
 
+    if (!canGenerate) {
+      setGenerationResult({
+        success: false,
+        error: creditsRemaining === 0 
+          ? 'You have used all your free image generation credits. Please purchase more credits to continue.'
+          : 'Please wait while we check your credits...',
+      })
+      return
+    }
+
     setIsProcessing(true)
     setGenerationResult(null)
 
@@ -110,6 +122,16 @@ export function ImageUploader({ onClose, onImageGenerated }: ImageUploaderProps)
           prompt: prompt,
         }),
       })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('API Error:', response.status, errorText)
+        setGenerationResult({
+          success: false,
+          error: `Server error (${response.status}): ${errorText.substring(0, 200)}...`,
+        })
+        return
+      }
 
       const result = await response.json()
 
@@ -133,6 +155,7 @@ export function ImageUploader({ onClose, onImageGenerated }: ImageUploaderProps)
         })
       }
     } catch (error) {
+      console.error('Generation error:', error)
       setGenerationResult({
         success: false,
         error: error instanceof Error ? error.message : 'An unexpected error occurred',
@@ -250,12 +273,44 @@ export function ImageUploader({ onClose, onImageGenerated }: ImageUploaderProps)
         />
       </div>
 
+      {/* Credits Display */}
+      <div className="mb-6 rounded-lg border bg-muted/50 p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CreditCard className="size-5 text-primary" />
+            <span className="font-medium">Remaining Credits</span>
+          </div>
+          <div className="text-right">
+            {creditsLoading ? (
+              <span className="text-muted-foreground">Loading...</span>
+            ) : (
+              <span className="text-2xl font-bold text-primary">{creditsRemaining}</span>
+            )}
+          </div>
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">
+          {creditsRemaining === 0 ? (
+            <>
+              You've used all your free credits. 
+              <button 
+                onClick={() => window.location.href = '/pricing'}
+                className="ml-1 font-medium text-primary hover:underline"
+              >
+                Purchase more credits
+              </button>
+            </>
+          ) : (
+            `Each image generation uses 1 credit. ${creditsRemaining} generation${creditsRemaining !== 1 ? 's' : ''} remaining.`
+          )}
+        </p>
+      </div>
+
       {/* Generate Button */}
       <Button
         className="w-full gap-2"
         size="lg"
         onClick={handleGenerate}
-        disabled={!selectedImage || !prompt || isProcessing}
+        disabled={!selectedImage || !prompt || isProcessing || !canGenerate}
       >
         {isProcessing ? (
           <>
@@ -265,7 +320,7 @@ export function ImageUploader({ onClose, onImageGenerated }: ImageUploaderProps)
         ) : (
           <>
             <Sparkles className="size-5" />
-            Get Edit Suggestions
+            {canGenerate ? 'Get Edit Suggestions' : 'No Credits Available'}
           </>
         )}
       </Button>
@@ -303,6 +358,15 @@ export function ImageUploader({ onClose, onImageGenerated }: ImageUploaderProps)
               <AlertCircle className="size-4" />
               <AlertDescription>
                 {generationResult.error}
+                {generationResult.error?.includes('credits') && (
+                  <Button 
+                    className="mt-3 w-full"
+                    onClick={() => window.location.href = '/pricing'}
+                  >
+                    <CreditCard className="mr-2 size-4" />
+                    Purchase Credits
+                  </Button>
+                )}
               </AlertDescription>
             </Alert>
           )}

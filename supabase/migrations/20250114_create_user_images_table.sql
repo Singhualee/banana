@@ -4,6 +4,8 @@ CREATE TABLE IF NOT EXISTS user_images (
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   original_image TEXT NOT NULL,
   generated_image TEXT NOT NULL,
+  original_image_path TEXT,
+  generated_image_path TEXT,
   prompt TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
