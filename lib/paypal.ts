@@ -4,8 +4,8 @@
 interface PayPalConfig {
   mode: 'sandbox' | 'live'
   apiUrl: string
-  clientId: string
-  clientSecret: string
+  clientId?: string
+  clientSecret?: string
 }
 
 interface PayPalCreateOrderParams {
@@ -36,10 +36,7 @@ export class PayPalService {
     const clientId = process.env.PAYPAL_CLIENT_ID
     const clientSecret = process.env.PAYPAL_CLIENT_SECRET
 
-    if (!clientId || !clientSecret) {
-      throw new Error('PayPal client ID and secret are required')
-    }
-
+    // Store configuration even if clientId/secret are missing for build process
     this.config = {
       mode,
       apiUrl: mode === 'live'
@@ -51,17 +48,29 @@ export class PayPalService {
   }
 
   /**
+   * Check if PayPal is configured correctly
+   */
+  private isConfigured(): boolean {
+    return !!(this.config.clientId && this.config.clientSecret)
+  }
+
+  /**
    * Create PayPal authentication header
    */
   private getAuthHeader(): string {
-    const auth = Buffer.from(`${this.config.clientId}:${this.config.clientSecret}`).toString('base64')
-    return `Basic ${auth}`
+    // This should only be called after isConfigured() check
+    return `Basic ${Buffer.from(`${this.config.clientId}:${this.config.clientSecret}`).toString('base64')}`
   }
 
   /**
    * Create PayPal payment order
    */
   async createOrder(params: PayPalCreateOrderParams): Promise<PayPalOrderResponse> {
+    // Check if PayPal is configured
+    if (!this.isConfigured()) {
+      throw new Error('PayPal client ID and secret are required')
+    }
+
     const { amount, currency, returnUrl, cancelUrl, customData } = params
 
     const response = await fetch(
@@ -116,6 +125,12 @@ export class PayPalService {
    * Verify PayPal webhook signature
    */
   async verifyWebhookSignature(params: PayPalWebhookVerificationParams): Promise<boolean> {
+    // Check if PayPal is configured
+    if (!this.isConfigured()) {
+      console.error('PayPal client ID and secret are required')
+      return false
+    }
+
     const { headers, body } = params
 
     const webhookId = process.env.PAYPAL_WEBHOOK_ID
