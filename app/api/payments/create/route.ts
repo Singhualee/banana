@@ -16,7 +16,9 @@ export async function POST(request: Request) {
     }
 
     // 构建成功和取消回调URL
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    // Use Vercel URL if available, otherwise use NEXT_PUBLIC_SITE_URL or fallback to localhost
+    const siteUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000')
+    console.log('[Payments Create] Using site URL:', siteUrl);
     const successUrl = `${siteUrl}/payment/success?plan=${plan}`
     const cancelUrl = `${siteUrl}/payment/cancel`
 

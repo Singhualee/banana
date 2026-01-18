@@ -6,13 +6,14 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient(request)
     const { redirectTo } = await request.json()
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
-    console.log('[Google Auth] NEXT_PUBLIC_SITE_URL:', siteUrl)
+    // Use Vercel URL if available, otherwise use NEXT_PUBLIC_SITE_URL
+    const siteUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : process.env.NEXT_PUBLIC_SITE_URL
+    console.log('[Google Auth] Using site URL:', siteUrl)
     
     if (!siteUrl) {
-      console.error('NEXT_PUBLIC_SITE_URL is not configured')
+      console.error('No site URL configured')
       return NextResponse.json(
-        { error: 'Server configuration error: NEXT_PUBLIC_SITE_URL is missing' },
+        { error: 'Server configuration error: No site URL configured' },
         { status: 500 }
       )
     }

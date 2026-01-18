@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase-server';
 
+// Log environment variables for debugging
+console.log('[API Images] NEXT_PUBLIC_SITE_URL:', process.env.NEXT_PUBLIC_SITE_URL);
+console.log('[API Images] NODE_ENV:', process.env.NODE_ENV);
+
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient(request);
