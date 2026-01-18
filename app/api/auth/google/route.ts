@@ -6,22 +6,31 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient(request)
     const { redirectTo } = await request.json()
 
-    // Use Vercel URL if available, otherwise use NEXT_PUBLIC_SITE_URL
-    const siteUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : process.env.NEXT_PUBLIC_SITE_URL
-    console.log('[Google Auth] Using site URL:', siteUrl)
+    // Priority order: 1) Vercel URL, 2) NEXT_PUBLIC_SITE_URL (production), 3) Fallback to localhost for development
+    let siteUrl: string
     
-    if (!siteUrl) {
-      console.error('No site URL configured')
-      return NextResponse.json(
-        { error: 'Server configuration error: No site URL configured' },
-        { status: 500 }
-      )
+    if (process.env.VERCEL_URL) {
+      // In Vercel production environment, use Vercel URL
+      siteUrl = `https://${process.env.VERCEL_URL}`
+    } else if (process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_SITE_URL) {
+      // In other production environments, use NEXT_PUBLIC_SITE_URL
+      siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+    } else {
+      // For local development, use localhost
+      siteUrl = 'http://localhost:3000'
     }
+    
+    console.log('[Google Auth] Request received:', { redirectTo, environment: { NODE_ENV: process.env.NODE_ENV, VERCEL_URL: process.env.VERCEL_URL } })
+    
+    // Always use the client-provided redirectTo if available, this ensures we use the correct domain
+    // The client passes window.location.origin, which is the actual domain the user is visiting
+    const finalRedirectTo = redirectTo || `${siteUrl}/auth/callback`
+    console.log('[Google Auth] Final redirectTo:', finalRedirectTo)
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: redirectTo || `${siteUrl}/auth/callback`,
+        redirectTo: finalRedirectTo,
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
@@ -34,6 +43,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
 
+    console.log('[Google Auth] Supabase returned OAuth URL:', data.url)
     return NextResponse.json({ url: data.url })
   } catch (error) {
     console.error('Internal server error in Google auth:', error)
